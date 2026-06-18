@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Akta Sprawy: Wykreślanka Detektywistyczna</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="folder-container">
+        <div id="start-screen" class="screen active">
+            <div class="stamp">TAJNE</div>
+            <h1>AKTA SPRAWY</h1>
+            <p class="subtitle">Archiwum Kryminalne</p>
+            
+            <div class="prolog-section">
+                <div class="folder-tab">PROLOG</div>
+                <div class="paper-content">
+                    <p>Wcielasz się w rolę śledczego. Każda sprawa to nowa zbrobnia, nowi podejrzani i gęsto usiana dowodami plansza. Znajdź wszystkie ukryte słowa.</p>
+                    <p style="margin-top: 10px;"><strong>Słowa mogą się przecinać i biec w każdym kierunku (pionowo, poziomo i na skos). Litery, które nie należą do żadnego hasła, ułożą się w rozwiązanie zagadki.</strong></p>
+                </div>
+            </div>
+            
+            <div class="menu-buttons">
+                <button id="resume-btn" class="btn btn-secondary" style="display: none; margin-bottom: 12px;">WZNÓW PROWADZONE ŚLEDZTWO</button>
+                <button id="start-btn" class="btn">OTWÓRZ NOWĄ SPRAWĘ</button>
+            </div>
+        </div>
+
+        <div id="story-screen" class="screen">
+            <div class="stamp-red">RAPORT</div>
+            <h2>RAPORT Z MIEJSCA ZBRODNI</h2>
+            <div class="case-details">
+                <p><strong>Sprawa nr:</strong> <span id="case-number"></span></p>
+                <p><strong>Ofiara:</strong> <span id="case-victim"></span></p>
+            </div>
+            <div class="paper-content flex-content">
+                <p id="story-text"></p>
+                <h3>Podejrzani:</h3>
+                <ul id="suspects-list"></ul>
+            </div>
+            <button id="to-game-btn" class="btn">ROZPOCZNIJ PRZESŁUCHANIE (GRA)</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <div><strong>Sprawa:</strong> <span id="game-case-title"></span></div>
+                <button id="abandon-btn" class="btn-small">PORZUĆ SPRAWĘ</button>
+            </div>
+
+            <div id="grid-container">
+                <div id="grid-wrapper">
+                    <div id="word-search-grid"></div>
+                    <svg id="markers-layer"></svg>
+                </div>
+            </div>
+
+            <div class="word-list-container">
+                <h3>Dowody do zweryfikowania (<span id="words-count">0</span>):</h3>
+                <div id="words-to-find" class="words-tags"></div>
+            </div>
+            
+            <button id="finish-case-btn" class="btn" style="display: none; margin-top: 10px;">PRZEJDŹ DO RAPORTU KOŃCOWEGO</button>
+        </div>
+
+        <div id="end-screen" class="screen">
+            <div class="stamp-solved">ROZWIĄZANE</div>
+            <h2>RAPORT KOŃCOWY SCHWYTANIA</h2>
+            <div class="paper-content flex-content final-report">
+                <p>Wszystkie poszlaki zostały wykreślone! Pozostałe na planszy czyste litery ujawniły brakujące elementy układanki:</p>
+                
+                <div class="clue-box">
+                    <p><strong>MORDERCA:</strong> <span id="final-killer" class="highlight"></span></p>
+                    <p><strong>NARZĘDZIE:</strong> <span id="final-weapon" class="highlight"></span></p>
+                    <p><strong>MIEJSCE:</strong> <span id="final-place" class="highlight"></span></p>
+                </div>
+                
+                <p id="final-story-resolution"></p>
+            </div>
+            <button id="restart-btn" class="btn">ZAMKNIJ AKTA I PROWADŹ KOLEJNE ŚLEDZTWO</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

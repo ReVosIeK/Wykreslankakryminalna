@@ -7,80 +7,148 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <svg style="position: absolute; width: 0; height: 0;" aria-hidden="true">
+        <defs>
+            <filter id="marker-roughness" x="-20%" y="-20%" width="140%" height="140%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" result="noise" />
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+        </defs>
+    </svg>
+
     <div class="folder-container">
+        <!-- START -->
         <div id="start-screen" class="screen active">
-            <div class="stamp">TAJNE</div>
+            <img src="img/stamp-secret.png" class="stamp-img" alt="TAJNE">
             <h1>AKTA SPRAWY</h1>
             <p class="subtitle">Archiwum Kryminalne</p>
-            
             <div class="prolog-section">
                 <div class="folder-tab">PROLOG</div>
                 <div class="paper-content">
-                    <p>Wcielasz się w rolę śledczego. Każda sprawa to nowa zbrobnia, nowi podejrzani i gęsto usiana dowodami plansza. Znajdź wszystkie ukryte słowa.</p>
-                    <p style="margin-top: 10px;"><strong>Słowa mogą się przecinać i biec w każdym kierunku (pionowo, poziomo i na skos). Litery, które nie należą do żadnego hasła, ułożą się w rozwiązanie zagadki.</strong></p>
+                    <p>Wcielasz się w rolę śledczego. Znajdź wszystkie ukryte słowa. Litery nie należące do żadnego hasła ułożą się w rozwiązanie zagadki.</p>
+                    <p style="margin-top:3px"><strong>Słowa biegną w każdym kierunku i mogą się przecinać.</strong></p>
                 </div>
             </div>
-            
             <div class="menu-buttons">
-                <button id="resume-btn" class="btn btn-secondary" style="display: none; margin-bottom: 12px;">WZNÓW PROWADZONE ŚLEDZTWO</button>
+                <button id="resume-btn" class="btn btn-secondary" style="display:none;margin-bottom:5px">WZNÓW ŚLEDZTWO</button>
                 <button id="start-btn" class="btn">OTWÓRZ NOWĄ SPRAWĘ</button>
             </div>
         </div>
 
+        <!-- HISTORIA -->
         <div id="story-screen" class="screen">
-            <div class="stamp-red">RAPORT</div>
+            <img src="img/stamp-report.png" class="stamp-img" alt="RAPORT">
             <h2>RAPORT Z MIEJSCA ZBRODNI</h2>
             <div class="case-details">
                 <p><strong>Sprawa nr:</strong> <span id="case-number"></span></p>
                 <p><strong>Ofiara:</strong> <span id="case-victim"></span></p>
             </div>
-            <div class="paper-content flex-content">
+            <div class="paper-content" style="margin-bottom:5px">
                 <p id="story-text"></p>
-                <h3>Podejrzani:</h3>
-                <ul id="suspects-list"></ul>
             </div>
-            <button id="to-game-btn" class="btn">ROZPOCZNIJ PRZESŁUCHANIE (GRA)</button>
+            <div class="suspects-container">
+                <h3>PODEJRZANI</h3>
+                <ul class="suspects-list-inline" id="suspects-list"></ul>
+            </div>
+            <button id="to-game-btn" class="btn" style="margin-top:auto">ROZPOCZNIJ PRZESŁUCHANIE</button>
         </div>
 
+        <!-- GRA -->
         <div id="game-screen" class="screen">
             <div class="game-header">
                 <div><strong>Sprawa:</strong> <span id="game-case-title"></span></div>
-                <button id="abandon-btn" class="btn-small">PORZUĆ SPRAWĘ</button>
+                <div style="display:flex;gap:4px">
+                    <button id="abandon-btn" class="btn-small">ODŁÓŻ SPRAWĘ</button>
+                </div>
             </div>
-
             <div id="grid-container">
                 <div id="grid-wrapper">
                     <div id="word-search-grid"></div>
                     <svg id="markers-layer"></svg>
                 </div>
             </div>
-
             <div class="word-list-container">
-                <h3>Dowody do zweryfikowania (<span id="words-count">0</span>):</h3>
+                <h3>Dowody (<span id="words-count">0</span>):</h3>
                 <div id="words-to-find" class="words-tags"></div>
             </div>
-            
-            <button id="finish-case-btn" class="btn" style="display: none; margin-top: 10px;">PRZEJDŹ DO RAPORTU KOŃCOWEGO</button>
+            <button id="to-minigame-btn" class="btn" style="display:none;margin-top:3px">PRZEANALIZUJ LITERY</button>
+            <button id="finish-case-btn" class="btn" style="display:none;margin-top:3px">RAPORT KOŃCOWY</button>
         </div>
 
+        <!-- MINIGRA -->
+        <div id="minigame-screen" class="screen">
+            <img src="img/stamp-evidence.png" class="stamp-img" alt="DOWÓD">
+            <h2>REKONSTRUKCJA HASŁA</h2>
+            
+            <div class="paper-content" style="margin-bottom:5px">
+                <p id="minigame-story-intro"></p>
+            </div>
+
+            <div class="evidence-note">
+                <div class="note-header">NOTATKA ŚLEDCZEGO</div>
+                <p id="minigame-note"></p>
+            </div>
+
+            <div class="minigame-letters-section">
+                <h3>Zakreślone litery:</h3>
+                <div class="remaining-letters" id="remaining-letters-container"></div>
+            </div>
+
+            <div class="guess-section">
+                <h3>Twoja rekonstrukcja:</h3>
+                <div class="guess-fields">
+                    <div class="guess-field-row">
+                        <span class="guess-field-label">Zabójca:</span>
+                        <div class="guess-field-slots" id="guess-killer-slots"></div>
+                        <span class="guess-field-status" id="status-killer"></span>
+                    </div>
+                    <div class="guess-field-row">
+                        <span class="guess-field-label">Broń:</span>
+                        <div class="guess-field-slots" id="guess-weapon-slots"></div>
+                        <span class="guess-field-status" id="status-weapon"></span>
+                    </div>
+                    <div class="guess-field-row">
+                        <span class="guess-field-label">Miejsce:</span>
+                        <div class="guess-field-slots" id="guess-place-slots"></div>
+                        <span class="guess-field-status" id="status-place"></span>
+                    </div>
+                </div>
+                <p id="minigame-feedback"></p>
+            </div>
+
+            <div class="debug-hint" id="debug-hint-box">
+                <strong>DEBUG:</strong> <span id="debug-hint-text"></span>
+            </div>
+
+            <div class="minigame-buttons">
+                <button id="minigame-reset-btn" class="btn btn-secondary">WYCZYŚĆ</button>
+            </div>
+            <button id="to-end-from-minigame-btn" class="btn" style="display:none;margin-top:3px;background:#145A32">RAPORT KOŃCOWY</button>
+        </div>
+
+        <!-- KONIEC -->
         <div id="end-screen" class="screen">
-            <div class="stamp-solved">ROZWIĄZANE</div>
-            <h2>RAPORT KOŃCOWY SCHWYTANIA</h2>
+            <img src="img/stamp-solved.png" class="stamp-img" alt="ROZWIĄZANE">
+            <h2>RAPORT KOŃCOWY</h2>
             <div class="paper-content flex-content final-report">
-                <p>Wszystkie poszlaki zostały wykreślone! Pozostałe na planszy czyste litery ujawniły brakujące elementy układanki:</p>
-                
+                <p>Wszystkie poszlaki wykreślone! Pozostałe litery ujawniły:</p>
                 <div class="clue-box">
                     <p><strong>MORDERCA:</strong> <span id="final-killer" class="highlight"></span></p>
                     <p><strong>NARZĘDZIE:</strong> <span id="final-weapon" class="highlight"></span></p>
                     <p><strong>MIEJSCE:</strong> <span id="final-place" class="highlight"></span></p>
                 </div>
-                
                 <p id="final-story-resolution"></p>
             </div>
-            <button id="restart-btn" class="btn">ZAMKNIJ AKTA I PROWADŹ KOLEJNE ŚLEDZTWO</button>
+            <button id="restart-btn" class="btn">ZAMKNIJ AKTA</button>
         </div>
     </div>
 
+    <script src="word-pool.js"></script>
+    <script src="plot-components.js"></script>
+    <script src="minigame-text.js"></script>
+    <script src="syllable-dictionary.js"></script>
+    <script src="syllable-utils.js"></script>
+    <script src="generator.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
