@@ -384,7 +384,7 @@ function generateNewCase(isResuming = false) {
         gameState.storyText = getRandomElement(PLOT_COMPONENTS.stories);
         gameState.caseNumber = Math.floor(Math.random() * 90000 + 10000);
         gameState.solutionString = (k + w + p).toLowerCase();
-        gameState.gridSize = 14;
+        gameState.gridSize = 12;
 
         let ps = PLOT_COMPONENTS.killers.filter(x => x !== k);
         shuffleArray(ps);
