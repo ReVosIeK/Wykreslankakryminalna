@@ -458,7 +458,7 @@ function resumeSavedGame() {
         gameState.wordsToFind = d.wordsToFind;
         gameState.grid = d.grid;
         gameState.solutionString = d.solutionString;
-        gameState.gridSize = d.gridSize || 14;
+        gameState.gridSize = d.gridSize || 12;
         gameState.svgLinesData = d.svgLinesData || [];
         gameState.remainingLetters = d.remainingLetters || [];
         gameState.guessKiller = d.guessKiller || [];
