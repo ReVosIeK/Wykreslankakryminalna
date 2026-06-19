@@ -29,6 +29,27 @@
                     <p style="margin-top:3px"><strong>Słowa biegną w każdym kierunku i mogą się przecinać.</strong></p>
                 </div>
             </div>
+            <div class="settings-container" style="margin: 10px 0; padding: 10px; background: var(--bg-paper-dark); border-radius: 4px; border: 1px solid var(--grid-line);">
+                <h3 style="margin-top:0; font-size:0.8rem;">USTAWIENIA</h3>
+                
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <span style="font-size:0.75rem;">Rozmiar planszy:</span>
+                    <select id="grid-size-select" style="font-family:inherit; font-size:0.75rem; padding:4px 8px; border-radius:3px; border:1px solid var(--grid-line); background:var(--bg-paper);">
+                        <option value="10">10×10</option>
+                        <option value="11">11×11</option>
+                        <option value="12" selected>12×12</option>
+                        <option value="13">13×13</option>
+                        <option value="14">14×14</option>
+                        <option value="15">15×15</option>
+                        <option value="16">16×16</option>
+                    </select>
+                </div>
+                
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                    <span style="font-size:0.75rem;">Podpowiedzi słów:</span>
+                    <button id="toggle-hints-btn" class="btn-small" style="background: var(--ink-blue); min-width: auto; padding: 6px 12px; font-size: 0.7rem;">WŁĄCZONE</button>
+                </div>
+            </div>
             <div class="menu-buttons">
                 <button id="resume-btn" class="btn btn-secondary" style="display:none;margin-bottom:5px">WZNÓW ŚLEDZTWO</button>
                 <button id="start-btn" class="btn">OTWÓRZ NOWĄ SPRAWĘ</button>
@@ -58,6 +79,7 @@
             <div class="game-header">
                 <div><strong>Sprawa:</strong> <span id="game-case-title"></span></div>
                 <div style="display:flex;gap:4px">
+                    <button id="hint-btn" class="btn-small" style="background:var(--ink-blue)">PODPOWIEDŹ</button>
                     <button id="abandon-btn" class="btn-small">ODŁÓŻ SPRAWĘ</button>
                 </div>
             </div>
@@ -121,6 +143,7 @@
             </div>
 
             <div class="minigame-buttons">
+                <button id="minigame-hint-btn" class="btn" style="background:var(--ink-blue);">PODPOWIEDŹ</button>
                 <button id="minigame-reset-btn" class="btn btn-secondary">WYCZYŚĆ</button>
             </div>
             <button id="to-end-from-minigame-btn" class="btn" style="display:none;margin-top:3px;background:#145A32">RAPORT KOŃCOWY</button>

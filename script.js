@@ -13,6 +13,11 @@ let gameState = {
     placedWords: [], solutionCells: [], blockedCells: new Set()
 };
 
+let gameSettings = {
+    gridSize: 12,
+    hintsEnabled: true
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     initEventListeners();
     checkSavedGame();
@@ -30,6 +35,13 @@ function initEventListeners() {
     document.getElementById("to-minigame-btn")?.addEventListener("click", () => { buildMinigame(); switchScreen("minigame-screen"); });
     document.getElementById("minigame-reset-btn")?.addEventListener("click", resetMinigameGuess);
     document.getElementById("to-end-from-minigame-btn")?.addEventListener("click", () => { triggerVictoryData(); switchScreen("end-screen"); });
+
+    document.getElementById("grid-size-select")?.addEventListener("change", (e) => {
+        gameSettings.gridSize = parseInt(e.target.value);
+    });
+
+    document.getElementById("hint-btn")?.addEventListener("click", showHint);
+    document.getElementById("minigame-hint-btn")?.addEventListener("click", showMinigameHint);
 
     const gridEl = document.getElementById("word-search-grid");
     if (gridEl) {
@@ -83,6 +95,8 @@ function hideDebugHint() {
 
 // ============ MINIGRA ============
 function buildMinigame() {
+    document.getElementById("minigame-hint-btn").style.display = "block";
+
     const tiles = prepareSyllablesForMinigame(
         gameState.solutionCells,
         gameState.killer,
@@ -142,6 +156,8 @@ function renderMinigame() {
         }
     }
 
+
+
     function ss(el, txt, cls) {
         if (!el) return;
         el.innerText = txt || "";
@@ -168,6 +184,7 @@ function renderMinigame() {
         gameState.minigameSolved = true;
         document.getElementById("to-end-from-minigame-btn").style.display = "block";
         document.getElementById("minigame-reset-btn").style.display = "none";
+        document.getElementById("minigame-hint-btn").style.display = "none";
         if (fb) {
             fb.innerText = getRandomElement(MINIGAME_SUCCESS_MESSAGES);
             fb.style.color = "#145A32";
@@ -188,45 +205,41 @@ function renderMinigame() {
         c.appendChild(chip);
     });
 
-    // Pola zgadywania - pojedyncze sloty na każdą LITERĘ (jak wcześniej)
-    function renderField(el, arr, maxLen, fieldName) {
+    // Pola zgadywania - pojedyncze sloty na każdą sylabę
+    function renderField(el, arr, fieldName) {
         el.innerHTML = "";
-        // Rozwiń sylaby na pojedyncze litery
-        const letters = [];
-        for (const idx of arr) {
-            const tile = gameState.remainingLetters[idx];
-            for (const char of tile.text) {
-                letters.push({ char, tileIndex: idx });
-            }
+        
+        const syllableCount = getSyllableCount(
+            fieldName === 'killer' ? gameState.killer : 
+            fieldName === 'weapon' ? gameState.weapon : 
+            gameState.place
+        );
+        
+        // Dla każdej umieszczonej sylaby
+        for (let i = 0; i < arr.length; i++) {
+            const tile = gameState.remainingLetters[arr[i]];
+            let slot = document.createElement("div");
+            slot.classList.add("guess-slot", "filled", "syllable-slot");
+            slot.innerText = tile.text;
+            slot.addEventListener("click", () => removeTileFromField(fieldName, i));
+            el.appendChild(slot);
         }
         
-        for (let i = 0; i < maxLen; i++) {
-            let slot = document.createElement("div");
-            slot.classList.add("guess-slot");
-            if (i < letters.length) {
-                slot.classList.add("filled");
-                slot.innerText = letters[i].char;
-                // Kliknięcie usuwa CAŁĄ sylabę która zawiera tę literę
-                slot.addEventListener("click", () => {
-                    const tileIdx = letters[i].tileIndex;
-                    const arr = gfa(fieldName);
-                    const pos = arr.indexOf(tileIdx);
-                    if (pos >= 0) removeTileFromField(fieldName, pos);
-                });
-            } else {
-                slot.classList.add("empty");
-                slot.addEventListener("click", () => {
-                    gameState.activeField = fieldName;
-                    renderMinigame();
-                });
-            }
-            el.appendChild(slot);
+        // Puste sloty na pozostałe sylaby
+        for (let i = arr.length; i < syllableCount; i++) {
+            let emptySlot = document.createElement("div");
+            emptySlot.classList.add("guess-slot", "empty");
+            emptySlot.addEventListener("click", () => {
+                gameState.activeField = fieldName;
+                renderMinigame();
+            });
+            el.appendChild(emptySlot);
         }
     }
 
-    renderField(ks, gameState.guessKiller, gameState.killer.length, 'killer');
-    renderField(ws, gameState.guessWeapon, gameState.weapon.length, 'weapon');
-    renderField(ps, gameState.guessPlace, gameState.place.length, 'place');
+    renderField(ks, gameState.guessKiller, 'killer');
+    renderField(ws, gameState.guessWeapon, 'weapon');
+    renderField(ps, gameState.guessPlace, 'place');
 
     [ks, ws, ps].forEach(el => el.style.outline = 'none');
     if (gameState.activeField === 'killer') ks.style.outline = '2px solid var(--stamp-red)';
@@ -289,7 +302,68 @@ function resetMinigameGuess() {
     saveGame();
 }
 
+function showMinigameHint() {
+    if (gameState.minigameSolved) return;
+    
+    // Sprawdź które pole jest aktywne i niepełne
+    const fields = [
+        { name: 'killer', arr: gameState.guessKiller, len: gameState.killer.length },
+        { name: 'weapon', arr: gameState.guessWeapon, len: gameState.weapon.length },
+        { name: 'place', arr: gameState.guessPlace, len: gameState.place.length }
+    ];
+    
+    for (const field of fields) {
+        if (field.arr.length < field.len) {
+            // Znajdź pierwszą nieużytą sylabę która pasuje
+            const used = getUsedIndices();
+            const currentText = field.arr.map(i => gameState.remainingLetters[i].text).join("");
+            const targetWord = field.name === 'killer' ? gameState.killer : 
+                              field.name === 'weapon' ? gameState.weapon : gameState.place;
+            
+            for (let i = 0; i < gameState.remainingLetters.length; i++) {
+                if (used.includes(i)) continue;
+                const tile = gameState.remainingLetters[i];
+                const testText = currentText + tile.text;
+                
+                if (targetWord.startsWith(testText)) {
+                    // Podświetl ten kafelek
+                    const chip = document.querySelectorAll('.letter-chip')[i];
+                    if (chip) {
+                        chip.classList.add('hint-flash');
+                        setTimeout(() => chip.classList.remove('hint-flash'), 1500);
+                    }
+                    break;
+                }
+            }
+            break;
+        }
+    }
+}
+
+function getSyllableCount(word) {
+    if (window.SYLLABLE_DICTIONARY && window.SYLLABLE_DICTIONARY[word]) {
+        return window.SYLLABLE_DICTIONARY[word].length;
+    }
+    return word.length; // fallback
+}
+
 // ============ GRA ============
+
+function showHint() {
+    const unfound = gameState.placedWords.filter(pw => !pw.found);
+    if (unfound.length === 0) return;
+    
+    const word = unfound[Math.floor(Math.random() * unfound.length)];
+    
+    word.cells.forEach(cell => {
+        const el = document.querySelector(`.grid-cell[data-row='${cell.r}'][data-col='${cell.c}']`);
+        if (el) {
+            el.classList.add("hint-flash");
+            setTimeout(() => el.classList.remove("hint-flash"), 1000);
+        }
+    });
+}
+
 function handleStartBtnAction() {
     gameState.debugMode = false;
     hideDebugHint();
@@ -384,7 +458,7 @@ function generateNewCase(isResuming = false) {
         gameState.storyText = getRandomElement(PLOT_COMPONENTS.stories);
         gameState.caseNumber = Math.floor(Math.random() * 90000 + 10000);
         gameState.solutionString = (k + w + p).toLowerCase();
-        gameState.gridSize = 12;
+        gameState.gridSize = gameSettings.gridSize
 
         let ps = PLOT_COMPONENTS.killers.filter(x => x !== k);
         shuffleArray(ps);
@@ -458,7 +532,7 @@ function resumeSavedGame() {
         gameState.wordsToFind = d.wordsToFind;
         gameState.grid = d.grid;
         gameState.solutionString = d.solutionString;
-        gameState.gridSize = d.gridSize || 12;
+        gameState.gridSize = d.gridSize || 16;
         gameState.svgLinesData = d.svgLinesData || [];
         gameState.remainingLetters = d.remainingLetters || [];
         gameState.guessKiller = d.guessKiller || [];
@@ -514,6 +588,10 @@ function renderWordListHTML() {
         t.classList.add("word-tag");
         t.id = "tag-" + w;
         t.innerText = w;
+        if (!gameSettings.hintsEnabled) {
+            t.style.opacity = "0";
+            t.style.userSelect = "none";
+        }
         tc.appendChild(t);
     });
 }

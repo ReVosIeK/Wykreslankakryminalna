@@ -60,13 +60,23 @@ class Board {
 
 function fillBoardWithWords(board, placedWords, usedWords) {
     const size = board.size;
-    const allWords = [...new Set(ALL_WORDS)].filter(w => w.length >= 3 && w.length <= 10);
-
-    for (let pass = 0; pass < 15; pass++) {
+    
+    // Dynamiczne parametry
+    const passes = size <= 10 ? 8 : size >= 15 ? 15 : 10;
+    const maxOverlap = size <= 10 ? 3 : size >= 15 ? 1 : 2;
+    const maxWordsTotal = size * size;
+    
+    const allWords = [...new Set(ALL_WORDS)]
+        .filter(w => w.length >= 2 && w.length <= size)
+        .sort((a, b) => b.length - a.length);
+    
+    for (let pass = 0; pass < passes; pass++) {
         let changed = false;
         for (let r = 0; r < size; r++) {
             for (let c = 0; c < size; c++) {
                 if (!board.isEmpty(r, c)) continue;
+                if (placedWords.length >= maxWordsTotal) break;
+                
                 const shuffled = shuffleArrayLocal([...allWords]);
                 for (const w of shuffled) {
                     if (usedWords.has(w)) continue;
@@ -76,13 +86,13 @@ function fillBoardWithWords(board, placedWords, usedWords) {
                             const sr = r - dir.y * offset, sc = c - dir.x * offset;
                             if (sr < 0 || sr >= size || sc < 0 || sc >= size) continue;
                             if (board.canPlaceWord(w, sr, sc, dir)) {
-                                let maxOverlap = 0;
+                                let maxOv = 0;
                                 for (let i = 0; i < w.length; i++) {
                                     const nr = sr + dir.y * i, nc = sc + dir.x * i;
-                                    const overlap = board.getCellWordCount(nr, nc);
-                                    if (overlap > maxOverlap) maxOverlap = overlap;
+                                    const ov = board.getCellWordCount(nr, nc);
+                                    if (ov > maxOv) maxOv = ov;
                                 }
-                                if (maxOverlap <= 1) {
+                                if (maxOv <= maxOverlap) {
                                     const cells = board.placeWord(w, sr, sc, dir);
                                     placedWords.push({word: w, cells, dir, found: false});
                                     usedWords.add(w);
@@ -97,7 +107,40 @@ function fillBoardWithWords(board, placedWords, usedWords) {
                 }
             }
         }
-        if (board.isFull()) break;
+        if (board.isFull() || !changed) break;
+    }
+    
+    // Jeśli nadal puste - agresywne dopełnianie
+    if (!board.isFull()) {
+        for (let pass = 0; pass < 20; pass++) {
+            let changed = false;
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (!board.isEmpty(r, c)) continue;
+                    const shuffled = shuffleArrayLocal([...allWords]);
+                    for (const w of shuffled) {
+                        if (w.length < 2 || w.length > size) continue;
+                        const dirs = shuffleArrayLocal([...DIRECTIONS]);
+                        for (const dir of dirs) {
+                            for (let offset = 0; offset < w.length; offset++) {
+                                const sr = r - dir.y * offset, sc = c - dir.x * offset;
+                                if (sr < 0 || sr >= size || sc < 0 || sc >= size) continue;
+                                if (board.canPlaceWord(w, sr, sc, dir)) {
+                                    const cells = board.placeWord(w, sr, sc, dir);
+                                    placedWords.push({word: w, cells, dir, found: false});
+                                    usedWords.add(w);
+                                    changed = true;
+                                    break;
+                                }
+                            }
+                            if (!board.isEmpty(r, c)) break;
+                        }
+                        if (!board.isEmpty(r, c)) break;
+                    }
+                }
+            }
+            if (board.isFull() || !changed) break;
+        }
     }
 }
 
@@ -106,11 +149,10 @@ function generatePuzzle() {
     const solStr = gameState.solutionString;
     const solLen = solStr.length;
 
-    for (let attempt = 0; attempt < 10; attempt++) {
+    for (let attempt = 0; attempt < 5; attempt++) {
         const board = new Board(size);
-        
-        // KROK 1: Najpierw wybierz losowe pozycje dla solutionCells
-        // Rozmieść je POJEDYNCZO na całej planszy
+
+        // Rozmieść solutionCells rozproszone
         const solutionCells = [];
         const blockedSet = new Set();
         
@@ -122,57 +164,47 @@ function generatePuzzle() {
         }
         shuffleArrayLocal(allPositions);
         
-        // Wybierz solLen pozycji, ale rozproszonych
         let positions = [];
-        let used = new Set();
-        
         for (let pos of allPositions) {
             if (positions.length >= solLen) break;
-            
-            // Sprawdź czy nie za blisko innych solutionCells (min 2 komórki odstępu)
             let tooClose = false;
             for (let p of positions) {
                 let dist = Math.abs(pos.r - p.r) + Math.abs(pos.c - p.c);
-                if (dist < 3) { tooClose = true; break; }
+                if (dist < 2) { tooClose = true; break; }
             }
-            
             if (!tooClose) {
                 positions.push(pos);
-                used.add(`${pos.r},${pos.c}`);
+                blockedSet.add(`${pos.r},${pos.c}`);
+                board.block(pos.r, pos.c);
+                board.grid[pos.r][pos.c] = solStr[positions.length - 1];
+                solutionCells.push({r: pos.r, c: pos.c, letter: solStr[positions.length - 1]});
             }
         }
         
-        // Jeśli za mało, dobierz pozostałe
+        // Jeśli za mało pozycji, dobierz pozostałe
         if (positions.length < solLen) {
             for (let pos of allPositions) {
                 if (positions.length >= solLen) break;
-                if (!used.has(`${pos.r},${pos.c}`)) {
+                if (!blockedSet.has(`${pos.r},${pos.c}`)) {
                     positions.push(pos);
+                    blockedSet.add(`${pos.r},${pos.c}`);
+                    board.block(pos.r, pos.c);
+                    board.grid[pos.r][pos.c] = solStr[positions.length - 1];
+                    solutionCells.push({r: pos.r, c: pos.c, letter: solStr[positions.length - 1]});
                 }
             }
         }
-        
-        // Oznacz solutionCells jako zablokowane
-        for (let i = 0; i < solLen; i++) {
-            const {r, c} = positions[i];
-            blockedSet.add(`${r},${c}`);
-            board.block(r, c);
-            board.grid[r][c] = solStr[i];
-            solutionCells.push({r, c, letter: solStr[i]});
-        }
-        
-        // KROK 2: Wypełnij resztę słowami
+
         const placedWords = [];
         const usedWords = new Set();
         fillBoardWithWords(board, placedWords, usedWords);
-        
-        if (board.isFull() && placedWords.length >= 15) {
+
+        if (board.isFull() && placedWords.length >= Math.max(10, size * 2)) {
             gameState.grid = board.grid;
             gameState.placedWords = placedWords;
             gameState.wordsToFind = placedWords.map(p => p.word);
             gameState.solutionCells = solutionCells;
             gameState.blockedCells = blockedSet;
-            console.log(`OK: ${placedWords.length} słów, solution rozproszone`);
             return;
         }
     }
@@ -187,7 +219,7 @@ function fallbackGenerate() {
     const solutionCells = [];
     const blockedSet = new Set();
 
-    // Rozmieść solutionCells pojedynczo, rozproszone
+    // Rozmieść solutionCells
     let allPositions = [];
     for (let r = 1; r < size - 1; r++) {
         for (let c = 1; c < size - 1; c++) {
@@ -196,32 +228,34 @@ function fallbackGenerate() {
     }
     shuffleArrayLocal(allPositions);
     
-    let positions = [];
-    for (let pos of allPositions) {
-        if (positions.length >= solStr.length) break;
-        let tooClose = false;
-        for (let p of positions) {
-            let dist = Math.abs(pos.r - p.r) + Math.abs(pos.c - p.c);
-            if (dist < 2) { tooClose = true; break; }
-        }
-        if (!tooClose) positions.push(pos);
-    }
-    
-    if (positions.length < solStr.length) {
-        for (let pos of allPositions) {
-            if (positions.length >= solStr.length) break;
-            if (!positions.some(p => p.r === pos.r && p.c === pos.c)) {
-                positions.push(pos);
+    for (let i = 0; i < solStr.length; i++) {
+        let placed = false;
+        for (let attempt = 0; attempt < 100 && !placed; attempt++) {
+            const r = Math.floor(Math.random() * size);
+            const c = Math.floor(Math.random() * size);
+            if (!blockedSet.has(`${r},${c}`) && r > 0 && r < size - 1 && c > 0 && c < size - 1) {
+                blockedSet.add(`${r},${c}`);
+                board.block(r, c);
+                board.grid[r][c] = solStr[i];
+                solutionCells.push({r, c, letter: solStr[i]});
+                placed = true;
             }
         }
-    }
-    
-    for (let i = 0; i < solStr.length; i++) {
-        const {r, c} = positions[i];
-        blockedSet.add(`${r},${c}`);
-        board.block(r, c);
-        board.grid[r][c] = solStr[i];
-        solutionCells.push({r, c, letter: solStr[i]});
+        if (!placed) {
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (!blockedSet.has(`${r},${c}`)) {
+                        blockedSet.add(`${r},${c}`);
+                        board.block(r, c);
+                        board.grid[r][c] = solStr[i];
+                        solutionCells.push({r, c, letter: solStr[i]});
+                        placed = true;
+                        break;
+                    }
+                }
+                if (placed) break;
+            }
+        }
     }
 
     const placedWords = [];
@@ -233,7 +267,6 @@ function fallbackGenerate() {
     gameState.wordsToFind = placedWords.map(p => p.word);
     gameState.solutionCells = solutionCells;
     gameState.blockedCells = blockedSet;
-    console.log(`Fallback: ${placedWords.length} słów`);
 }
 
 window.generatePuzzle = generatePuzzle;
